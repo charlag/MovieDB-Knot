@@ -24,7 +24,11 @@ interface Store {
 }
 
 interface DispatchableEvent : Event
+object LoadMoreDiscoverEvent : DispatchableEvent
+object RetryLoadDiscoverEvent : DispatchableEvent
 data class OpenMovieDetailsEvent(val id: String) : DispatchableEvent
+
+data class FailedToLoadDiscoverEvent(val page: Int) : Event
 
 data class NavigateEvent(val key: Navigator.Key, val forward: Boolean) : Event
 
@@ -33,7 +37,7 @@ data class State(
     val screens: List<ScreenState>
 ) {
   interface ScreenState
-  data class DiscoverScreenState(val page: Long, val movies: List<Movie>) : ScreenState
+  data class DiscoverScreenState(val page: Int, val movies: List<Movie>) : ScreenState
   data class DetailsScreenState(val id: String, val movie: Movie?) : ScreenState
 }
 
@@ -62,12 +66,19 @@ class StoreImpl(private val api: Api) : Store {
   }
 
   val upcomingEpic: Epic<State> = { upstream ->
-    upstream.ofEventType(InitEvent::class.java)
-        .take(1)
-        .switchMapSingle {
-          api.discoverMovies()
+    upstream.filter { (event) ->
+      when (event) {
+        InitEvent, LoadMoreDiscoverEvent, RetryLoadDiscoverEvent -> true
+        else -> false
+      }
+    }
+        .switchMapSingle { (_, state) ->
+          val screenState = state.screens.last { it is DiscoverScreenState } as DiscoverScreenState
+          val page = screenState.page + 1
+          api.discoverMovies(page)
+              .map { DiscoverLoadedEvent(it) as Event }
+              .onErrorReturn { FailedToLoadDiscoverEvent(page) }
         }
-        .map(::DiscoverLoadedEvent)
         .doOnNext { event -> Log.d("Store", event.toString()) }
   }
 
@@ -144,7 +155,8 @@ class StoreImpl(private val api: Api) : Store {
         screens = listOf(DiscoverScreenState(0, listOf()))
     )
 
-    val externalEvents = PublishSubject.create<Event>()
+    val externalEvents: Observable<Event> = dispatchedEvents.cast(Event::class.java)
+        .startWith(InitEvent)
 
     val (eventsKnot, state) = createKnot(
         initial = initialState,
@@ -157,8 +169,6 @@ class StoreImpl(private val api: Api) : Store {
     events = eventsKnot
 
     eventsKnot.connect()
-
-    externalEvents.onNext(InitEvent)
   }
 
 }

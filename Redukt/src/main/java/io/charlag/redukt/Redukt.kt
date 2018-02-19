@@ -21,34 +21,34 @@ import io.reactivex.subjects.PublishSubject
  * @author charlag
  */
 fun <S> createKnot(
-        initial: S,
-        eventsSource: Observable<Event>,
-        reducer: (S, Event) -> S,
-        rootEpic: Epic<S>
+    initial: S,
+    eventsSource: Observable<out Event>,
+    reducer: (S, Event) -> S,
+    rootEpic: Epic<S>
 ): Pair<ConnectableObservable<Event>, Observable<S>> {
-    val state = BehaviorSubject.createDefault(initial)
-    val events = PublishSubject.create<Event>()
-    val eventsObservable = Observable.create<Event> { observer ->
-        events.withLatestFrom(state, BiFunction<Event, S, EventBundle<S, Event>> { ev, oldState ->
-            val newState = reducer(oldState, ev)
-            state.onNext(newState)
-            EventBundle(ev, newState, oldState)
+  val state = BehaviorSubject.createDefault(initial)
+  val events = PublishSubject.create<Event>()
+  val eventsObservable = Observable.create<Event> { observer ->
+    events.withLatestFrom(state, BiFunction<Event, S, EventBundle<S, Event>> { ev, oldState ->
+      val newState = reducer(oldState, ev)
+      state.onNext(newState)
+      EventBundle(ev, newState, oldState)
+    })
+        .applyEpic(rootEpic)
+        .subscribe({ t ->
+          observer.onNext(t)
+          events.onNext(t)
         })
-                .applyEpic(rootEpic)
-                .subscribe({ t ->
-                    observer.onNext(t)
-                    events.onNext(t)
-                })
-        eventsSource.subscribe(events)
-    }
-            .publish()
+    eventsSource.subscribe(events)
+  }
+      .publish()
 
-    return eventsObservable to state
+  return eventsObservable to state
 }
 
-/**
- * Epic is some part of your domain code which contains side-effects
- */
+    /**
+     * Epic is some part of your domain code which contains side-effects
+     */
 typealias Epic<S> = (Observable<out EventBundle<S, Event>>) -> Observable<out Event>
 
 /**
@@ -62,44 +62,46 @@ data class EventBundle<out S, out E>(val event: E, val newState: S, val oldState
 interface Event
 
 fun <S> Observable<out EventBundle<S, Event>>.applyEpic(epic: Epic<S>) =
-        let(epic)
+    let(epic)
 
 fun <S> Observable<out EventBundle<S, Event>>.applyEpics(
-        vararg epics: Epic<S>): Observable<Event> {
-    return Observable.merge(epics.map { it(this) })
+    vararg epics: Epic<S>): Observable<Event> {
+  return publish { shared ->
+    Observable.merge(epics.map { it(shared) })
+  }
 }
 
 fun <S> epicOf(vararg epics: Epic<S>): Epic<S> =
-        { upstream -> upstream.applyEpics(*epics) }
+    { upstream -> upstream.applyEpics(*epics) }
 
 inline fun <S, reified T> makeMapEpic(type: Class<T>,
-                                      noinline mapper: ((EventBundle<S, T>) -> Event)): Epic<S> {
-    return { upstream ->
-        upstream.ofEventType(type).map(mapper)
-    }
+    noinline mapper: ((EventBundle<S, T>) -> Event)): Epic<S> {
+  return { upstream ->
+    upstream.ofEventType(type).map(mapper)
+  }
 }
 
 inline fun <S, reified T> switchMapEpic(type: Class<T>,
-                                        noinline mapper: ((EventBundle<S, T>) -> Observable<Event>)): Epic<S> {
-    return { upstream ->
-        upstream.ofEventType(type).switchMap(mapper)
-    }
+    noinline mapper: ((EventBundle<S, T>) -> Observable<Event>)): Epic<S> {
+  return { upstream ->
+    upstream.ofEventType(type).switchMap(mapper)
+  }
 }
 
 inline fun <S, reified T> Observable<out EventBundle<S, Any>>.ofEventType()
-        : Observable<EventBundle<S, T>> =
-        filter { it.event is T }
-                .map {
-                    @Suppress("UNCHECKED_CAST")
-                    it as EventBundle<S, T>
-                }
-
-inline fun <S, reified T> Observable<out EventBundle<S, Any>>.ofEventType(type: Class<T>)
-        : Observable<EventBundle<S, T>> = filter { type.isInstance(it.event) }
+    : Observable<EventBundle<S, T>> =
+    filter { it.event is T }
         .map {
-            @Suppress("UNCHECKED_CAST")
-            it as EventBundle<S, T>
+          @Suppress("UNCHECKED_CAST")
+          it as EventBundle<S, T>
         }
 
+inline fun <S, reified T> Observable<out EventBundle<S, Any>>.ofEventType(type: Class<T>)
+    : Observable<EventBundle<S, T>> = filter { type.isInstance(it.event) }
+    .map {
+      @Suppress("UNCHECKED_CAST")
+      it as EventBundle<S, T>
+    }
+
 fun <S> Observable<out EventBundle<S, Any>>.filterStateChanged():
-        Observable<out EventBundle<S, Any>> = distinctUntilChanged { first, second -> first.newState != second.newState }
+    Observable<out EventBundle<S, Any>> = distinctUntilChanged { first, second -> first.newState != second.newState }

@@ -13,6 +13,7 @@ import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Query
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -78,5 +79,5 @@ interface Api {
   fun upcoming(): Single<PagedResponse>
 
   @GET("discover/movie")
-  fun discoverMovies(): Single<PagedResponse>
+  fun discoverMovies(@Query("page") page: Int): Single<PagedResponse>
 }

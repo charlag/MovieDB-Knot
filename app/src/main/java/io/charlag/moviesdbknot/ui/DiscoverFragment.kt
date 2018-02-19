@@ -17,8 +17,10 @@ import io.charlag.moviesdbknot.R
 import io.charlag.moviesdbknot.data.models.Configuration
 import io.charlag.moviesdbknot.data.models.Movie
 import io.charlag.moviesdbknot.di.Injectable
+import io.charlag.moviesdbknot.logic.LoadMoreDiscoverEvent
 import io.charlag.moviesdbknot.logic.State.DiscoverScreenState
 import io.charlag.moviesdbknot.logic.Store
+import io.charlag.moviesdbknot.ui.lib.EndlessRecyclerViewScrollListener
 import io.reactivex.android.schedulers.AndroidSchedulers
 import javax.inject.Inject
 
@@ -39,8 +41,15 @@ class DiscoverFragment : Fragment(), Injectable {
     val view = inflater.inflate(R.layout.layout_discover, container, false)
 
     val recyclerView = view.findViewById<RecyclerView>(R.id.rvMovies)
-    recyclerView.layoutManager = LinearLayoutManager(context!!)
+    val layoutManager = LinearLayoutManager(context)
+    recyclerView.layoutManager = layoutManager
     recyclerView.adapter = adapter
+
+    recyclerView.addOnScrollListener(object : EndlessRecyclerViewScrollListener(layoutManager) {
+      override fun onLoadMore(page: Int, totalItemsCount: Int, view: RecyclerView?) {
+        store.dispatch(LoadMoreDiscoverEvent)
+      }
+    })
 
     return view
   }

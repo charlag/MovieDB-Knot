@@ -7,7 +7,7 @@ import com.squareup.moshi.Json
  */
 data class PagedResponse(
         val results: List<Movie>,
-        val page: Long,
+        val page: Int,
         @Json(name = "total_pages") val totalPages: Long,
         @Json(name = "total_results") val totalresults: Long
 )
