@@ -1,63 +1,39 @@
 package io.charlag.moviesdbknot
 
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
-import io.charlag.moviesdbknot.data.models.Movie
-import io.charlag.moviesdbknot.logic.StoreImpl
+import android.support.v7.app.AppCompatActivity
+import com.uber.autodispose.android.lifecycle.scope
+import com.uber.autodispose.kotlin.autoDisposable
+import io.charlag.moviesdbknot.di.Injectable
+import io.charlag.moviesdbknot.logic.NavigateEvent
+import io.charlag.moviesdbknot.logic.Store
+import io.charlag.moviesdbknot.ui.FragmentNavigator
+import io.charlag.moviesdbknot.ui.Navigator.Key.DiscoverKey
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.addTo
+import io.reactivex.rxkotlin.ofType
+import javax.inject.Inject
+import kotlin.LazyThreadSafetyMode.NONE
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), Injectable {
 
-    val store = StoreImpl()
-    val adapter = MoviesAdapter()
+  @Inject
+  lateinit var store: Store
 
-    val disposable = CompositeDisposable()
+  private val navigator = lazy(mode = NONE) { FragmentNavigator(this, R.id.frameMain) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_main)
 
-        val recyclerView = findViewById<RecyclerView>(R.id.rvMovies)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = adapter
+    // Set up initial view
+    navigator.value.goTo(DiscoverKey, true)
 
-        store.state.observeOn(AndroidSchedulers.mainThread())
-                .subscribe {state ->
-                    adapter.update(state.mainPageState.movies)
-                }
-                .addTo(disposable)
-    }
-
-    class MoviesAdapter : RecyclerView.Adapter<MoviesAdapter.ViewHolder>() {
-
-        fun update(movies: List<Movie>) {
-            this.movies.clear()
-            this.movies.addAll(movies)
-            this.notifyDataSetChanged()
+    store.events.ofType<NavigateEvent>()
+        .observeOn(AndroidSchedulers.mainThread())
+        .autoDisposable(scope())
+        .subscribe { event ->
+          navigator.value.goTo(event.key, event.forward)
         }
+  }
 
-        private val movies = mutableListOf<Movie>()
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = TextView(parent.context)
-            return ViewHolder(view)
-        }
-
-        override fun getItemCount(): Int = movies.size
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.titleTextView.text = movies[position].title
-        }
-
-        class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            val titleTextView: TextView = itemView as TextView
-        }
-    }
 }
