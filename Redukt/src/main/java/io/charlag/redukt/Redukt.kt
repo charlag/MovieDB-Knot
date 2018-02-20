@@ -104,4 +104,4 @@ inline fun <S, reified T> Observable<out EventBundle<S, Any>>.ofEventType(type: 
     }
 
 fun <S> Observable<out EventBundle<S, Any>>.filterStateChanged():
-    Observable<out EventBundle<S, Any>> = distinctUntilChanged { first, second -> first.newState != second.newState }
+    Observable<out EventBundle<S, Any>> = filter { (_, new, old) -> old != new }

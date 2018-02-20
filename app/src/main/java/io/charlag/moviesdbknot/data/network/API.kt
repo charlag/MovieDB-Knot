@@ -3,6 +3,7 @@ package io.charlag.moviesdbknot.data.network
 import android.annotation.SuppressLint
 import com.squareup.moshi.*
 import io.charlag.moviesdbknot.data.models.Configuration
+import io.charlag.moviesdbknot.data.models.Movie
 import io.charlag.moviesdbknot.data.models.PagedResponse
 import io.reactivex.Single
 import okhttp3.Interceptor
@@ -13,6 +14,7 @@ import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -80,4 +82,7 @@ interface Api {
 
   @GET("discover/movie")
   fun discoverMovies(@Query("page") page: Int): Single<PagedResponse>
+
+  @GET("movie/{movieId}")
+  fun getMovie(@Path("movieId") movieId: Long): Single<Movie>
 }

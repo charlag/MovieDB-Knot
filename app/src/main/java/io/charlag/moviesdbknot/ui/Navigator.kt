@@ -19,6 +19,8 @@ interface Navigator {
   sealed class Key {
     object DiscoverKey : Key()
     object MovieDetailsKey : Key()
+
+    open val tag: String get() = toString()
   }
 }
 
@@ -28,10 +30,22 @@ class FragmentNavigator(
 ) : Navigator {
 
   override fun goTo(key: Key, forward: Boolean) {
+    val tag = key.tag
+    if (!forward) {
+      for (i in fragmentManager.backStackEntryCount - 1 downTo 0) {
+        if (fragmentManager.getBackStackEntryAt(i).name == tag) {
+          fragmentManager.popBackStackImmediate(tag, 0)
+          return
+        }
+      }
+    }
 
     fragmentManager.beginTransaction()
         .replace(frameId, fragment(key))
-        .commitNowAllowingStateLoss()
+        .run {
+          if (forward) addToBackStack(tag) else this
+        }
+        .commit()
   }
 
   private val fragmentManager = activity.supportFragmentManager

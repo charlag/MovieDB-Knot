@@ -1,6 +1,5 @@
 package io.charlag.moviesdbknot.logic
 
-import android.util.Log
 import io.charlag.moviesdbknot.data.models.Configuration
 import io.charlag.moviesdbknot.data.models.Movie
 import io.charlag.moviesdbknot.data.models.PagedResponse
@@ -9,7 +8,12 @@ import io.charlag.moviesdbknot.logic.State.DetailsScreenState
 import io.charlag.moviesdbknot.logic.State.DiscoverScreenState
 import io.charlag.moviesdbknot.logic.State.ScreenState
 import io.charlag.moviesdbknot.ui.Navigator
-import io.charlag.redukt.*
+import io.charlag.redukt.Epic
+import io.charlag.redukt.Event
+import io.charlag.redukt.createKnot
+import io.charlag.redukt.epicOf
+import io.charlag.redukt.filterStateChanged
+import io.charlag.redukt.ofEventType
 import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
 
@@ -24,11 +28,17 @@ interface Store {
 }
 
 interface DispatchableEvent : Event
+
 object LoadMoreDiscoverEvent : DispatchableEvent
 object RetryLoadDiscoverEvent : DispatchableEvent
-data class OpenMovieDetailsEvent(val id: String) : DispatchableEvent
+data class OpenMovieDetailsEvent(val id: Long) : DispatchableEvent
+object BackPressedEvent : DispatchableEvent
 
+
+object FinishAppEvent : Event
 data class FailedToLoadDiscoverEvent(val page: Int) : Event
+data class DidLoadMovieEvent(val movie: Movie) : Event
+data class FailedToLoadMovieEvent(val id: Long) : Event
 
 data class NavigateEvent(val key: Navigator.Key, val forward: Boolean) : Event
 
@@ -38,7 +48,7 @@ data class State(
 ) {
   interface ScreenState
   data class DiscoverScreenState(val page: Int, val movies: List<Movie>) : ScreenState
-  data class DetailsScreenState(val id: String, val movie: Movie?) : ScreenState
+  data class DetailsScreenState(val id: Long, val movie: Movie?) : ScreenState
 }
 
 class StoreImpl(private val api: Api) : Store {
@@ -79,7 +89,6 @@ class StoreImpl(private val api: Api) : Store {
               .map { DiscoverLoadedEvent(it) as Event }
               .onErrorReturn { FailedToLoadDiscoverEvent(page) }
         }
-        .doOnNext { event -> Log.d("Store", event.toString()) }
   }
 
   private fun screenToKey(screen: ScreenState): Navigator.Key {
@@ -104,6 +113,22 @@ class StoreImpl(private val api: Api) : Store {
         }
   }
 
+  val loadMovieDetailsEpic: Epic<State> = { upstream ->
+    upstream.ofEventType(OpenMovieDetailsEvent::class.java)
+        .flatMapSingle { (event, _, _) ->
+          api.getMovie(event.id)
+              .map { DidLoadMovieEvent(it) as Event }
+              .onErrorReturn { FailedToLoadMovieEvent(event.id) }
+        }
+  }
+
+  val finishAppEpic: Epic<State> = { upstream ->
+    upstream.filter { (event, state) ->
+      event == BackPressedEvent && state.screens.isEmpty()
+    }
+        .map { FinishAppEvent }
+  }
+
   fun reducer(state: State, event: Event): State {
     return state.copy(
         config = configReducer(state.config, event),
@@ -122,8 +147,10 @@ class StoreImpl(private val api: Api) : Store {
   }
 
   fun detailsScreenReducer(state: DetailsScreenState, event: Event): DetailsScreenState {
-    // TODO
-    return state
+    return when {
+      event is DidLoadMovieEvent && state.id == event.movie.id -> state.copy(movie = event.movie)
+      else -> state
+    }
   }
 
   fun mapScreens(state: List<ScreenState>, event: Event): List<ScreenState> {
@@ -139,6 +166,7 @@ class StoreImpl(private val api: Api) : Store {
   fun screensReducer(state: List<ScreenState>, event: Event): List<ScreenState> {
     return when (event) {
       is OpenMovieDetailsEvent -> state + DetailsScreenState(event.id, null)
+      is BackPressedEvent -> if (state.isNotEmpty()) state.dropLast(1) else state
       else -> mapScreens(state, event)
     }
   }
@@ -148,7 +176,13 @@ class StoreImpl(private val api: Api) : Store {
   }
 
   init {
-    val rootEpic = epicOf(upcomingEpic, configurationEpic, navigateEpic)
+    val rootEpic = epicOf(
+        upcomingEpic,
+        configurationEpic,
+        navigateEpic,
+        loadMovieDetailsEpic,
+        finishAppEpic
+    )
 
     val initialState = State(
         config = null,

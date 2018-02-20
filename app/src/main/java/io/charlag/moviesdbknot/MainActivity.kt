@@ -5,6 +5,8 @@ import android.support.v7.app.AppCompatActivity
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.kotlin.autoDisposable
 import io.charlag.moviesdbknot.di.Injectable
+import io.charlag.moviesdbknot.logic.BackPressedEvent
+import io.charlag.moviesdbknot.logic.FinishAppEvent
 import io.charlag.moviesdbknot.logic.NavigateEvent
 import io.charlag.moviesdbknot.logic.Store
 import io.charlag.moviesdbknot.ui.FragmentNavigator
@@ -34,6 +36,16 @@ class MainActivity : AppCompatActivity(), Injectable {
         .subscribe { event ->
           navigator.value.goTo(event.key, event.forward)
         }
+
+    store.events.ofType<FinishAppEvent>()
+        .autoDisposable(scope())
+        .subscribe {
+          finish()
+        }
+  }
+
+  override fun onBackPressed() {
+    store.dispatch(BackPressedEvent)
   }
 
 }

@@ -12,6 +12,7 @@ class Configuration(
   data class Images(
       @Json(name = "base_url") val baseUrl: String,
       @Json(name = "secure_base_url") val secureBaseUrl: String,
-      @Json(name = "poster_sizes") val posterSizes: List<String>
+      @Json(name = "poster_sizes") val posterSizes: List<String>,
+      @Json(name = "backdrop_sizes") val backdropSizes: List<String>
   )
 }
