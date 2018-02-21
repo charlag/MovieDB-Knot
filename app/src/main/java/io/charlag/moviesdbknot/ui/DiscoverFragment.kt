@@ -95,7 +95,7 @@ class DiscoverFragment : Fragment(), Injectable {
     store.state.observeOn(AndroidSchedulers.mainThread())
         .autoDisposable(scope())
         .subscribe { state ->
-          val screenState = state.screens.last()
+          val screenState = state.screens.lastOrNull() ?: return@subscribe
           if (screenState is DiscoverScreenState) {
             val footerState = when {
               screenState.isLoading -> Loading
