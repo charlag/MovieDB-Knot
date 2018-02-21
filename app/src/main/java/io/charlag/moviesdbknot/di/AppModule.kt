@@ -2,6 +2,7 @@ package io.charlag.moviesdbknot.di
 
 import dagger.Module
 import dagger.Provides
+import io.charlag.moviesdbknot.BuildConfig
 import io.charlag.moviesdbknot.data.network.Api
 import io.charlag.moviesdbknot.data.network.ApiCreator
 import io.charlag.moviesdbknot.logic.Store
@@ -28,7 +29,7 @@ class AppModule {
   @Provides
   @ApiKey
   fun provideApiKey(): String {
-    return "78033c6a43dac4dc8fedde05d406df13"
+    return BuildConfig.API_KEY
   }
 
   @Provides

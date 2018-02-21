@@ -29,7 +29,8 @@ val navigateEpic: Epic<State> = { upstream ->
   upstream.filterStateChanged()
       .switchMap { (_, newState, oldState) ->
         if (newState.screens.size == oldState.screens.size
-            && newState.screens.last()::class == oldState.screens.last()::class) {
+            && newState.screens.last()::class == oldState.screens.last()::class
+            || newState.screens.isEmpty()) {
           Observable.empty<Event>()
         } else {
           val direction = newState.screens.size > oldState.screens.size
