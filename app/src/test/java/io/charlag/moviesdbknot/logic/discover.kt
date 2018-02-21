@@ -17,7 +17,6 @@ import io.reactivex.plugins.RxJavaPlugins
 import junit.framework.Assert
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito
 import java.io.IOException
 
 /**
@@ -33,12 +32,15 @@ class DiscoverLogicTest {
 
   @Test
   fun testLoadDiscoverOnInitEvent() {
-    val state = State(null, listOf(DiscoverScreenState(1, listOf())))
+    val state = State(
+        config = null,
+        screens = listOf(DiscoverScreenState(1, listOf(), isLoading = true, showError = false))
+    )
     val response = PagedResponse(listOf(), 2, 2, 100)
     val apiMock = mock<Api> {
       on { discoverMovies(any()) } doReturn Single.just(response)
     }
-    val epic = upcomingEpic(apiMock)
+    val epic = discoverMoviesEpic(apiMock)
     val testObserver = TestObserver<Event>()
     val upstream = Observable.just(EventBundle(InitEvent, state, state)).publish()
 
@@ -46,16 +48,20 @@ class DiscoverLogicTest {
     upstream.connect()
 
     testObserver.assertNoErrors()
-    testObserver.assertValue(DiscoverLoadedEvent(response))
+    testObserver.assertValue(DiscoverMoviesLoadedEvent(response))
   }
 
   @Test
   fun testLoadFailOnInitEvent() {
-    val state = State(null, listOf(DiscoverScreenState(1, listOf())))
+    val state = State(
+        config = null,
+        screens = listOf(DiscoverScreenState(1, listOf(), isLoading = true, showError = false))
+    )
+    val exception = IOException()
     val apiMock = mock<Api> {
-      on { discoverMovies(any()) } doReturn Single.error(IOException())
+      on { discoverMovies(any()) } doReturn Single.error(exception)
     }
-    val epic = upcomingEpic(apiMock)
+    val epic = discoverMoviesEpic(apiMock)
     val testObserver = TestObserver<Event>()
     val upstream = Observable.just(EventBundle(InitEvent, state, state)).publish()
 
@@ -63,17 +69,61 @@ class DiscoverLogicTest {
     upstream.connect()
 
     testObserver.assertNoErrors()
-    testObserver.assertValue(FailedToLoadDiscoverEvent(2))
+    testObserver.assertValue(FailedToLoadDiscoverEvent(2, exception))
   }
 
   @Test
   fun discoverScreenReducerOnDiscoverLoaded() {
-    val state = DiscoverScreenState(1, createMovies(1..10L))
-    val event = DiscoverLoadedEvent(PagedResponse(createMovies(11..21L), 2, 10, 100))
+    val state = DiscoverScreenState(1, createMovies(1..10L),
+        isLoading = true,
+        showError = false
+    )
+    val event = DiscoverMoviesLoadedEvent(PagedResponse(createMovies(11..21L), 2, 10, 100))
 
     val result = discoverScreenReducer(state, event)
-    Assert.assertEquals(state.movies + event.discoverResponse.results, result.movies)
-    Assert.assertEquals(event.discoverResponse.page, result.page)
+    Assert.assertEquals(DiscoverScreenState(
+        page = event.discoverResponse.page,
+        movies = state.movies + event.discoverResponse.results,
+        isLoading = false,
+        showError = false
+    ), result)
+  }
+
+  @Test
+  fun discoverScreenReducerOnDiscoverFailed() {
+    val state = DiscoverScreenState(1, createMovies(1..10L),
+        isLoading = true,
+        showError = false
+    )
+    val event = FailedToLoadDiscoverEvent(page = 2, error = null)
+
+    val result = discoverScreenReducer(state, event)
+
+    Assert.assertEquals(DiscoverScreenState(
+        page = state.page,
+        movies = state.movies,
+        isLoading = false,
+        showError = true
+    ), result)
+  }
+
+  @Test
+  fun discoverScreenReducerOnLoadMoreStarted() {
+    val state = DiscoverScreenState(1, createMovies(1..10L),
+        isLoading = true,
+        showError = false
+    )
+    val event = LoadMoreDiscoverEvent
+
+    val result = discoverScreenReducer(state, event)
+    Assert.assertEquals(
+        DiscoverScreenState(
+            page = state.page,
+            movies = state.movies,
+            isLoading = true,
+            showError = false
+        ),
+        result)
   }
 
   private fun sampleMovie(id: Long): Movie {

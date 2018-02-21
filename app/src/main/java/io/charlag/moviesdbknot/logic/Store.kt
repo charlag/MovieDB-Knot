@@ -56,7 +56,7 @@ class StoreImpl(api: Api) : Store {
 
   init {
     val rootEpic = epicOf(
-        upcomingEpic(api),
+        discoverMoviesEpic(api),
         configurationEpic(api),
         navigateEpic,
         loadMovieDetailsEpic(api),
@@ -65,7 +65,7 @@ class StoreImpl(api: Api) : Store {
 
     val initialState = State(
         config = null,
-        screens = listOf(DiscoverScreenState(0, listOf()))
+        screens = listOf(DiscoverScreenState(0, listOf(), showError = false, isLoading = true))
     )
 
     val externalEvents: Observable<Event> = dispatchedEvents.cast(Event::class.java)

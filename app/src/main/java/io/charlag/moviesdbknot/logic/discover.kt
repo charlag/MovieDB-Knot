@@ -12,16 +12,22 @@ import io.charlag.redukt.Event
  * Created by charlag on 21/02/2018.
  */
 
-data class DiscoverLoadedEvent(val discoverResponse: PagedResponse) : Event
+data class DiscoverMoviesLoadedEvent(val discoverResponse: PagedResponse) : Event
+
+data class FailedToLoadDiscoverEvent(val page: Int, val error: Throwable?) : Event
 
 object LoadMoreDiscoverEvent : DispatchableEvent
 object RetryLoadDiscoverEvent : DispatchableEvent
 data class OpenMovieDetailsEvent(val id: Long) : DispatchableEvent
-data class FailedToLoadDiscoverEvent(val page: Int) : Event
 
-data class DiscoverScreenState(val page: Int, val movies: List<Movie>) : ScreenState
+data class DiscoverScreenState(
+    val page: Int,
+    val movies: List<Movie>,
+    val showError: Boolean,
+    val isLoading: Boolean
+) : ScreenState
 
-fun upcomingEpic(api: Api): Epic<State> {
+fun discoverMoviesEpic(api: Api): Epic<State> {
   return { upstream ->
     upstream.filter { (event) ->
       when (event) {
@@ -33,17 +39,26 @@ fun upcomingEpic(api: Api): Epic<State> {
           val screenState = state.screens.last { it is DiscoverScreenState } as DiscoverScreenState
           val page = screenState.page + 1
           api.discoverMovies(page)
-              .map { DiscoverLoadedEvent(it) as Event }
-              .onErrorReturn { FailedToLoadDiscoverEvent(page) }
+              .map { DiscoverMoviesLoadedEvent(it) as Event }
+              .onErrorReturn { exception -> FailedToLoadDiscoverEvent(page, exception) }
         }
   }
 }
 
 fun discoverScreenReducer(state: DiscoverScreenState, event: Event): DiscoverScreenState {
   return when (event) {
-    is DiscoverLoadedEvent -> state.copy(
+    is DiscoverMoviesLoadedEvent -> state.copy(
         page = event.discoverResponse.page,
-        movies = state.movies + event.discoverResponse.results
+        movies = state.movies + event.discoverResponse.results,
+        isLoading = false
+    )
+    LoadMoreDiscoverEvent -> state.copy(
+        isLoading = true,
+        showError = false
+    )
+    is FailedToLoadDiscoverEvent -> state.copy(
+        isLoading = false,
+        showError = true
     )
     else -> state
   }
