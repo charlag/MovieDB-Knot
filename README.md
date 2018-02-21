@@ -8,6 +8,8 @@ will be dispatched to the reducers and other epics.
 
 This app also uses Dagger 2 for DI but it doesn't use it for injecting Epics which could be beneficial.
 
+**Important** You must specify your own API key (in app/build.gradle)
+
 As this is a sample app it makes some simplifications:
  * Views shouldn't know about the whole app state, some mediator should adapt the state for the view.
  * In the same way views shouldn't know about Events.
