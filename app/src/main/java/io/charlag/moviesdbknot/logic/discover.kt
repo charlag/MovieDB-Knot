@@ -10,18 +10,43 @@ import io.charlag.redukt.Event
 import java.util.Calendar
 
 /**
- * Created by charlag on 21/02/2018.
+ * Dispatched when movies were successfully loaded.
  */
-
 data class DiscoverMoviesLoadedEvent(val discoverResponse: PagedResponse) : Event
 
+/**
+ * Dispatched when error occurred during movie load.
+ */
 data class FailedToLoadDiscoverEvent(val page: Int, val error: Throwable?) : Event
 
+/**
+ * When more movies should be loaded.
+ */
 object LoadMoreDiscoverEvent : DispatchableEvent
+
+/**
+ * When user presses 'try again' button to try to load movies again.
+ */
 object RetryLoadDiscoverEvent : DispatchableEvent
+
+/**
+ * When movie is selected.
+ */
 data class OpenMovieDetailsEvent(val id: Long) : DispatchableEvent
+
+/**
+ * When year filter is selected. Will filter movies according to the selected year.
+ */
 data class DiscoverSelectedFilterYear(val year: Int?) : DispatchableEvent
 
+/**
+ * Current state of the Discover Movies screen.
+ * @property page Current page in the movies list (defined by the server)
+ * @property movies List of all loaded movies
+ * @property showError If error occurred during last request
+ * @property isLoading If request is in process
+ * @property yearFilter Current selected year to filter movies
+ */
 data class DiscoverScreenState(
     val page: Int,
     val movies: List<Movie>,
@@ -44,6 +69,11 @@ fun DiscoverScreenState.filteredMovies(): List<Movie> {
   }
 }
 
+/**
+ * Epic which loads next page of movies on [InitEvent], [LoadMoreDiscoverEvent] or
+ * [RetryLoadDiscoverEvent]. Dispatches [DiscoverMoviesLoadedEvent] on success or
+ * [FailedToLoadDiscoverEvent] on failure.
+ */
 fun discoverMoviesEpic(api: Api): Epic<State> {
   return { upstream ->
     upstream.filter { (event) ->

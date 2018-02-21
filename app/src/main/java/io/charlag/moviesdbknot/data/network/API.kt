@@ -20,9 +20,6 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Created by charlag on 14/02/18.
- */
 
 object ApiCreator {
   fun createApi(apiKey: String, baseUrl: String): Api {
@@ -73,6 +70,9 @@ object ApiCreator {
   }
 }
 
+/**
+ * MoviesDB-V3 API
+ */
 interface Api {
   @GET("configuration")
   fun configuration(): Single<Configuration>

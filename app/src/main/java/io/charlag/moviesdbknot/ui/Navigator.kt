@@ -10,10 +10,17 @@ import io.charlag.moviesdbknot.ui.Navigator.Key.DiscoverKey
 import io.charlag.moviesdbknot.ui.Navigator.Key.MovieDetailsKey
 
 /**
- * Created by charlag on 18/02/18.
+ * Component which is responsible for transitions between screens. Uses [Key] objects for
+ * identification.
+ * @author charlag
+ * Date: 18/02/18.
  */
-
 interface Navigator {
+  /**
+   * Open screen identified by [key]
+   * @param key Which screen to go to
+   * @param forward Is this screen in the back stack?
+   */
   fun goTo(key: Key, forward: Boolean)
 
   sealed class Key {

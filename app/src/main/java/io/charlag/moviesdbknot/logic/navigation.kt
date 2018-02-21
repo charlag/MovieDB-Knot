@@ -8,9 +8,23 @@ import io.charlag.redukt.filterStateChanged
 import io.reactivex.Observable
 
 /**
- * Created by charlag on 21/02/2018.
+ * When user presses back button.
  */
+object BackPressedEvent : DispatchableEvent
 
+/**
+ * Dispatched as a signal to shut down the app.
+ */
+object FinishAppEvent : Event
+
+/**
+ * Dispatched as a signal to change current screen
+ */
+data class NavigateEvent(val key: Navigator.Key, val forward: Boolean) : Event
+
+/**
+ * Epic which reacts to state changes and dispatches [NavigateEvent] events when needed.
+ */
 val navigateEpic: Epic<State> = { upstream ->
   upstream.filterStateChanged()
       .switchMap { (_, newState, oldState) ->
@@ -25,7 +39,9 @@ val navigateEpic: Epic<State> = { upstream ->
       }
 }
 
-
+/**
+ * Epic which sends [FinishAppEvent] when needed.
+ */
 val finishAppEpic: Epic<State> = { upstream ->
   upstream.filter { (event, state) ->
     event == BackPressedEvent && state.screens.isEmpty()
@@ -41,6 +57,9 @@ fun screenToKey(screen: ScreenState): Navigator.Key {
   }
 }
 
+/**
+ * Apply proper reducer to each screen.
+ */
 fun mapScreens(state: List<ScreenState>, event: Event): List<ScreenState> {
   return state.map { page ->
     when (page) {
@@ -51,6 +70,9 @@ fun mapScreens(state: List<ScreenState>, event: Event): List<ScreenState> {
   }
 }
 
+/**
+ * Add or remove screens and also apply reducer to each screen.
+ */
 fun screensReducer(state: List<ScreenState>, event: Event): List<ScreenState> {
   return when (event) {
     is OpenMovieDetailsEvent -> state + DetailsScreenState(event.id, null)
