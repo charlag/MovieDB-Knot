@@ -7,6 +7,7 @@ import io.charlag.moviesdbknot.logic.State.ScreenState
 import io.charlag.moviesdbknot.logic.StoreImpl.InitEvent
 import io.charlag.redukt.Epic
 import io.charlag.redukt.Event
+import java.util.Calendar
 
 /**
  * Created by charlag on 21/02/2018.
@@ -19,13 +20,29 @@ data class FailedToLoadDiscoverEvent(val page: Int, val error: Throwable?) : Eve
 object LoadMoreDiscoverEvent : DispatchableEvent
 object RetryLoadDiscoverEvent : DispatchableEvent
 data class OpenMovieDetailsEvent(val id: Long) : DispatchableEvent
+data class DiscoverSelectedFilterYear(val year: Int?) : DispatchableEvent
 
 data class DiscoverScreenState(
     val page: Int,
     val movies: List<Movie>,
     val showError: Boolean,
-    val isLoading: Boolean
+    val isLoading: Boolean,
+    val yearFilter: Int? = null
 ) : ScreenState
+
+/**
+ * Return movies which satisfy selected year filter.
+ * This is really suboptimal as this should be implemented with some kind of a memoization.
+ */
+fun DiscoverScreenState.filteredMovies(): List<Movie> {
+  if (yearFilter == null) return movies
+  val cal = Calendar.getInstance()
+  return movies.filter {
+    if (it.releaseDate == null) return@filter false
+    cal.timeInMillis = it.releaseDate.time
+    cal.get(Calendar.YEAR) == yearFilter
+  }
+}
 
 fun discoverMoviesEpic(api: Api): Epic<State> {
   return { upstream ->
@@ -60,6 +77,7 @@ fun discoverScreenReducer(state: DiscoverScreenState, event: Event): DiscoverScr
         isLoading = false,
         showError = true
     )
+    is DiscoverSelectedFilterYear -> state.copy(yearFilter = event.year)
     else -> state
   }
 }

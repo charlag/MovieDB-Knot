@@ -1,4 +1,5 @@
 <resources>
   <string name="app_name">MoviesDB Knot</string>
   <string name="failed_to_load_try_again">Failed to load. Try again?</string>
+  <string name="filter_by_year">Filter by year</string>
 </resources>

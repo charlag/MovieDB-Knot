@@ -1,7 +1,9 @@
 package io.charlag.moviesdbknot.ui
 
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.app.AlertDialog
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
@@ -19,11 +21,13 @@ import io.charlag.moviesdbknot.data.models.Configuration
 import io.charlag.moviesdbknot.data.models.Movie
 import io.charlag.moviesdbknot.di.Injectable
 import io.charlag.moviesdbknot.logic.DiscoverScreenState
+import io.charlag.moviesdbknot.logic.DiscoverSelectedFilterYear
 import io.charlag.moviesdbknot.logic.DispatchableEvent
 import io.charlag.moviesdbknot.logic.LoadMoreDiscoverEvent
 import io.charlag.moviesdbknot.logic.OpenMovieDetailsEvent
 import io.charlag.moviesdbknot.logic.RetryLoadDiscoverEvent
 import io.charlag.moviesdbknot.logic.Store
+import io.charlag.moviesdbknot.logic.filteredMovies
 import io.charlag.moviesdbknot.ui.DiscoverFragment.MoviesAdapter.FooterState.Error
 import io.charlag.moviesdbknot.ui.DiscoverFragment.MoviesAdapter.FooterState.Loading
 import io.charlag.moviesdbknot.ui.DiscoverFragment.MoviesAdapter.FooterState.None
@@ -59,6 +63,12 @@ class DiscoverFragment : Fragment(), Injectable {
 
     toolbar.title = "Knot Sample"
 
+    toolbar.inflateMenu(R.menu.discover)
+    toolbar.setOnMenuItemClickListener {
+      showYearPicker()
+      true
+    }
+
     val layoutManager = LinearLayoutManager(context)
     rvMovies.layoutManager = layoutManager
     rvMovies.adapter = adapter
@@ -92,13 +102,26 @@ class DiscoverFragment : Fragment(), Injectable {
               screenState.showError -> Error
               else -> None
             }
-            adapter.update(screenState.movies, state.config?.imagesConfig, footerState)
+            adapter.update(screenState.filteredMovies(), state.config?.imagesConfig, footerState)
           }
         }
   }
 
   private fun dispatch(event: DispatchableEvent) {
     store.dispatch(event)
+  }
+
+  private fun showYearPicker() {
+    val minYear = 1900
+    val years = (minYear..2100)
+    val yearStrings = years.map { it.toString() }.toTypedArray()
+    AlertDialog.Builder(context!!)
+        .setItems(yearStrings, { _, which ->
+          val year = minYear + which
+          dispatch(DiscoverSelectedFilterYear(year))
+        })
+        .setNeutralButton("None", { _, _ -> dispatch(DiscoverSelectedFilterYear(null)) })
+        .show()
   }
 
   class MoviesAdapter : RecyclerView.Adapter<MoviesAdapter.ViewHolder>() {

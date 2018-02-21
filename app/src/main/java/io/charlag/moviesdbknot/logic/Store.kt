@@ -65,8 +65,10 @@ class StoreImpl(api: Api) : Store {
 
     val initialState = State(
         config = null,
-        screens = listOf(DiscoverScreenState(0, listOf(), showError = false, isLoading = true))
-    )
+        screens = listOf(
+            DiscoverScreenState(0, listOf(), showError = false, isLoading = true,
+                yearFilter = null))
+        )
 
     val externalEvents: Observable<Event> = dispatchedEvents.cast(Event::class.java)
         .startWith(InitEvent)

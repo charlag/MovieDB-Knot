@@ -18,6 +18,7 @@ import junit.framework.Assert
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.util.Calendar
 
 /**
  * Created by charlag on 21/02/2018.
@@ -126,9 +127,40 @@ class DiscoverLogicTest {
         result)
   }
 
+  @Test
+  fun discoverScreenFilteredMovies() {
+    val movies = listOf(movieForYear(2016), movieForYear(2017), movieForYear(2018))
+    val state = DiscoverScreenState(3, movies, showError = false, isLoading = false,
+        yearFilter = 2017)
+    Assert.assertEquals(listOf(movies[1]), state.filteredMovies())
+  }
+
+
+  @Test
+  fun discoverScreenFilteredMoviesNoFilter() {
+    val movies = listOf(movieForYear(2016), movieForYear(2017), movieForYear(2018))
+    val state = DiscoverScreenState(3, movies, showError = false, isLoading = false,
+        yearFilter = null)
+    Assert.assertEquals(movies, state.filteredMovies())
+  }
+
   private fun sampleMovie(id: Long): Movie {
     return Movie(id, "Movie$id", id.toFloat(), "MovieOverview$id", null, null, null)
   }
 
   private fun createMovies(range: LongRange): List<Movie> = range.map(::sampleMovie)
+
+  private fun movieForYear(year: Int): Movie {
+    val cal = Calendar.getInstance()
+    cal.set(year, 1, 2, 3, 4, 5)
+    return Movie(
+        year.toLong(),
+        year.toString(),
+        year.toFloat(),
+        overview = null,
+        releaseDate = cal.time,
+        posterPath = null,
+        backdropPath = null
+    )
+  }
 }
