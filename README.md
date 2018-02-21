@@ -13,3 +13,4 @@ As this is a sample app it makes some simplifications:
  * In the same way views shouldn't know about Events.
  * Same models are used for the logic layer and for the view layer
  * Functionality like date filtering doesn't work like it should
+ * There should be an abstraction level (like 'Repository') between the epics and the API
