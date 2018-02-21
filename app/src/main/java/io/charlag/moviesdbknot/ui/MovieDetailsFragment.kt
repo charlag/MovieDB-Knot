@@ -15,8 +15,8 @@ import io.charlag.moviesdbknot.R.layout
 import io.charlag.moviesdbknot.data.models.Configuration
 import io.charlag.moviesdbknot.di.Injectable
 import io.charlag.moviesdbknot.logic.BackPressedEvent
+import io.charlag.moviesdbknot.logic.DetailsScreenState
 import io.charlag.moviesdbknot.logic.State
-import io.charlag.moviesdbknot.logic.State.DetailsScreenState
 import io.charlag.moviesdbknot.logic.Store
 import io.charlag.moviesdbknot.ui.lib.buildImageUrl
 import io.reactivex.android.schedulers.AndroidSchedulers

@@ -17,10 +17,10 @@ import io.charlag.moviesdbknot.R.layout
 import io.charlag.moviesdbknot.data.models.Configuration
 import io.charlag.moviesdbknot.data.models.Movie
 import io.charlag.moviesdbknot.di.Injectable
+import io.charlag.moviesdbknot.logic.DiscoverScreenState
 import io.charlag.moviesdbknot.logic.DispatchableEvent
 import io.charlag.moviesdbknot.logic.LoadMoreDiscoverEvent
 import io.charlag.moviesdbknot.logic.OpenMovieDetailsEvent
-import io.charlag.moviesdbknot.logic.State.DiscoverScreenState
 import io.charlag.moviesdbknot.logic.Store
 import io.charlag.moviesdbknot.ui.lib.EndlessRecyclerViewScrollListener
 import io.charlag.moviesdbknot.ui.lib.buildImageUrl
